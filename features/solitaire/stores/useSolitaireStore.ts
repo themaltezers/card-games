@@ -5,12 +5,14 @@ import type { SolitaireState } from "../types/solitaire";
 import { createGame } from "../engine/createGame";
 import { drawCard as drawCardEngine } from "../engine/drawCard";
 import { autoCompleteStep } from "../engine/autoCompleteGame";
+import type { Suit } from "@/features/cards/types/card";
 
 import {
     moveWasteToTableau as moveWasteToTableauEngine,
     moveTableauToTableau as moveTableauToTableauEngine,
     moveWasteToFoundation as moveWasteToFoundationEngine,
     moveTableauToFoundation as moveTableauToFoundationEngine,
+    moveFoundationToTableau as moveFoundationToTableauEngine,
 } from "../engine/moveCard";
 
 const AUTO_COMPLETE_DELAY = 200;
@@ -27,6 +29,7 @@ interface SolitaireActions {
     ) => void;
     moveWasteToFoundation: () => void;
     moveTableauToFoundation: (sourceColumn: number) => void;
+    moveFoundationToTableau: (suit: Suit, targetColumn: number) => void;
 }
 
 export type SolitaireStore = SolitaireState & SolitaireActions;
@@ -147,6 +150,11 @@ export const useSolitaireStore = create<SolitaireStore>((set, get) => {
         moveTableauToFoundation: (sourceColumn) => {
             applyGameAction((state) =>
                 moveTableauToFoundationEngine(state, sourceColumn),
+            );
+        },
+        moveFoundationToTableau: (suit, targetColumn) => {
+            applyGameAction((state) =>
+                moveFoundationToTableauEngine(state, suit, targetColumn),
             );
         },
     };

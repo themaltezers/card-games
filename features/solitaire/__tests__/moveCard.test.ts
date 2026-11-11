@@ -6,6 +6,7 @@ import {
     moveTableauToTableau,
     moveWasteToFoundation,
     moveTableauToFoundation,
+    moveFoundationToTableau,
 } from "../engine/moveCard";
 
 import { createGame } from "../engine/createGame";
@@ -330,5 +331,132 @@ describe("moveTableauToFoundation", () => {
         const nextState = moveTableauToFoundation(state, 0);
 
         expect(nextState.status).toBe("won");
+    });
+});
+
+describe("moveFoundationToTableau", () => {
+    it("should move the top card of a foundation to a valid tableau column", () => {
+        const six = createCard("hearts", 6);
+        const seven = createCard("clubs", 7);
+
+        const state = {
+            ...createGame(),
+            foundations: {
+                ...createGame().foundations,
+                hearts: [six],
+            },
+            tableau: [[seven], [], [], [], [], [], []],
+        };
+
+        const nextState = moveFoundationToTableau(state, "hearts", 0);
+
+        expect(nextState.foundations.hearts).toHaveLength(0);
+        expect(nextState.tableau[0]).toEqual([seven, six]);
+        expect(nextState.moves).toBe(1);
+    });
+
+    it("should move a king to an empty tableau column", () => {
+        const king = createCard("spades", 13);
+
+        const state = {
+            ...createGame(),
+            foundations: {
+                ...createGame().foundations,
+                spades: [king],
+            },
+            tableau: [[], [], [], [], [], [], []],
+        };
+
+        const nextState = moveFoundationToTableau(state, "spades", 0);
+
+        expect(nextState.foundations.spades).toHaveLength(0);
+        expect(nextState.tableau[0]).toEqual([king]);
+        expect(nextState.moves).toBe(1);
+    });
+
+    it("should reject a non-king on an empty column", () => {
+        const queen = createCard("hearts", 12);
+
+        const state = {
+            ...createGame(),
+            foundations: {
+                ...createGame().foundations,
+                hearts: [queen],
+            },
+            tableau: [[], [], [], [], [], [], []],
+        };
+
+        expect(moveFoundationToTableau(state, "hearts", 0)).toBe(state);
+    });
+
+    it("should reject a card with the wrong color or rank", () => {
+        const six = createCard("hearts", 6);
+        const seven = createCard("diamonds", 7);
+
+        const state = {
+            ...createGame(),
+            foundations: {
+                ...createGame().foundations,
+                hearts: [six],
+            },
+            tableau: [[seven], [], [], [], [], [], []],
+        };
+
+        expect(moveFoundationToTableau(state, "hearts", 0)).toBe(state);
+    });
+
+    it("should only retrieve the top card of a foundation", () => {
+        const six = createCard("hearts", 6);
+        const seven = createCard("hearts", 7);
+        const eight = createCard("clubs", 8);
+
+        const state = {
+            ...createGame(),
+            foundations: {
+                ...createGame().foundations,
+                hearts: [six, seven],
+            },
+            tableau: [[eight], [], [], [], [], [], []],
+        };
+
+        const nextState = moveFoundationToTableau(state, "hearts", 0);
+
+        expect(nextState.foundations.hearts).toEqual([six]);
+        expect(nextState.tableau[0]).toEqual([eight, seven]);
+    });
+
+    it("should reject an empty foundation", () => {
+        const state = createGame();
+
+        expect(moveFoundationToTableau(state, "hearts", 0)).toBe(state);
+    });
+
+    it("should reject an invalid target column", () => {
+        const king = createCard("spades", 13);
+
+        const state = {
+            ...createGame(),
+            foundations: {
+                ...createGame().foundations,
+                spades: [king],
+            },
+        };
+
+        expect(moveFoundationToTableau(state, "spades", 10)).toBe(state);
+    });
+
+    it("should reject a move after the game is won", () => {
+        const king = createCard("spades", 13);
+
+        const state = {
+            ...createGame(),
+            status: "won" as const,
+            foundations: {
+                ...createGame().foundations,
+                spades: [king],
+            },
+        };
+
+        expect(moveFoundationToTableau(state, "spades", 0)).toBe(state);
     });
 });

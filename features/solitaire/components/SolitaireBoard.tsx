@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { SUITS } from "@/features/cards/types/card";
-import type { Card } from "@/features/cards/types/card";
+import type { Suit } from "@/features/cards/types/card";
 
 import { useSolitaireStore } from "../stores/useSolitaireStore";
 
@@ -19,6 +19,10 @@ type Selection =
           type: "tableau";
           columnIndex: number;
           cardIndex: number;
+      }
+    | {
+          type: "foundation";
+          suit: Suit;
       }
     | null;
 
@@ -49,6 +53,10 @@ export default function SolitaireBoard() {
         (state) => state.moveTableauToFoundation,
     );
 
+    const moveFoundationToTableau = useSolitaireStore(
+        (state) => state.moveFoundationToTableau,
+    );
+
     const [selection, setSelection] = useState<Selection>(null);
 
     function clearSelectionAfterMove(action: () => void) {
@@ -64,7 +72,8 @@ export default function SolitaireBoard() {
     }
 
     function handleTableauCardClick(columnIndex: number, cardIndex: number) {
-        const card = tableau[columnIndex][cardIndex];
+        const column = tableau[columnIndex];
+        const card = column[cardIndex];
 
         if (!card.faceUp) return;
 
@@ -87,13 +96,25 @@ export default function SolitaireBoard() {
             return;
         }
 
+        // Déplacement depuis la défausse.
         if (selection.type === "waste") {
-            if (cardIndex !== tableau[columnIndex].length - 1) return;
+            if (cardIndex !== column.length - 1) return;
 
             clearSelectionAfterMove(() => moveWasteToTableau(columnIndex));
             return;
         }
 
+        // Déplacement depuis une fondation.
+        if (selection.type === "foundation") {
+            if (cardIndex !== column.length - 1) return;
+
+            clearSelectionAfterMove(() =>
+                moveFoundationToTableau(selection.suit, columnIndex),
+            );
+            return;
+        }
+
+        // Sélection d'une autre carte dans la même colonne.
         if (selection.columnIndex === columnIndex) {
             setSelection({
                 type: "tableau",
@@ -103,7 +124,8 @@ export default function SolitaireBoard() {
             return;
         }
 
-        if (cardIndex !== tableau[columnIndex].length - 1) return;
+        // Déplacement vers une autre colonne.
+        if (cardIndex !== column.length - 1) return;
 
         clearSelectionAfterMove(() =>
             moveTableauToTableau(
@@ -144,6 +166,13 @@ export default function SolitaireBoard() {
             return;
         }
 
+        if (selection.type === "foundation") {
+            clearSelectionAfterMove(() =>
+                moveFoundationToTableau(selection.suit, columnIndex),
+            );
+            return;
+        }
+
         clearSelectionAfterMove(() =>
             moveTableauToTableau(
                 selection.columnIndex,
@@ -156,20 +185,45 @@ export default function SolitaireBoard() {
     function handleWasteClick() {
         if (waste.length === 0) return;
 
-        setSelection({ type: "waste" });
+        setSelection((current) =>
+            current?.type === "waste" ? null : { type: "waste" },
+        );
     }
 
-    function handleFoundationClick() {
-        if (!selection) return;
+    function handleFoundationClick(suit: Suit) {
+        // Aucune sélection : on sélectionne la fondation.
+        if (!selection) {
+            if (foundations[suit].length === 0) return;
 
+            setSelection({ type: "foundation", suit });
+            return;
+        }
+
+        // Changer de fondation sélectionnée ou désélectionner.
+        if (selection.type === "foundation") {
+            if (selection.suit === suit) {
+                setSelection(null);
+            } else if (foundations[suit].length > 0) {
+                setSelection({ type: "foundation", suit });
+            }
+
+            return;
+        }
+
+        // Déplacement de la défausse vers sa fondation.
         if (selection.type === "waste") {
+            if (waste[waste.length - 1]?.suit !== suit) return;
+
             clearSelectionAfterMove(moveWasteToFoundation);
             return;
         }
 
+        // Déplacement du tableau vers sa fondation.
         const sourceColumn = tableau[selection.columnIndex];
 
         if (selection.cardIndex !== sourceColumn.length - 1) return;
+
+        if (sourceColumn[selection.cardIndex]?.suit !== suit) return;
 
         clearSelectionAfterMove(() =>
             moveTableauToFoundation(selection.columnIndex),
@@ -218,7 +272,11 @@ export default function SolitaireBoard() {
                                     key={suit}
                                     suit={suit}
                                     cards={foundations[suit]}
-                                    onClick={handleFoundationClick}
+                                    isSelected={
+                                        selection?.type === "foundation" &&
+                                        selection.suit === suit
+                                    }
+                                    onClick={() => handleFoundationClick(suit)}
                                 />
                             ))}
                         </section>

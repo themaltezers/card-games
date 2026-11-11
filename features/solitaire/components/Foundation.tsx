@@ -5,6 +5,7 @@ import CardSlot from "@/features/cards/components/CardSlot";
 interface FoundationProps {
     suit: Suit;
     cards: Card[];
+    isSelected?: boolean;
     onClick: () => void;
 }
 
@@ -15,11 +16,16 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
     spades: "♠",
 };
 
-export default function Foundation({ suit, cards, onClick }: FoundationProps) {
+export default function Foundation({
+    suit,
+    cards,
+    isSelected = false,
+    onClick,
+}: FoundationProps) {
     const topCard = cards[cards.length - 1];
 
     return (
-        <div>
+        <div className={isSelected ? "rounded-lg ring-2 ring-blue-400" : ""}>
             {topCard ? (
                 <PlayingCard card={topCard} onClick={onClick} />
             ) : (

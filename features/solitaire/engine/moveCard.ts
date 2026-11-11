@@ -1,4 +1,5 @@
 import type { SolitaireState } from "../types/solitaire";
+import type { Suit } from "@/features/cards/types/card";
 
 import {
     canPlaceOnTableau,
@@ -228,6 +229,52 @@ export function moveTableauToFoundation(
             ...state.foundations,
             [card.suit]: [...foundation, card],
         },
+    };
+
+    return finalizeMove(nextState);
+}
+
+/**
+ * Récupère la carte au sommet d'une fondation
+ * pour la déplacer vers une colonne du tableau.
+ */
+export function moveFoundationToTableau(
+    state: SolitaireState,
+    suit: Suit,
+    targetColumn: number,
+): SolitaireState {
+    if (state.status === "won") return state;
+
+    if (
+        !Number.isInteger(targetColumn) ||
+        targetColumn < 0 ||
+        targetColumn >= state.tableau.length
+    ) {
+        return state;
+    }
+
+    const foundation = state.foundations[suit];
+    const card = foundation[foundation.length - 1];
+
+    // Une fondation vide ne peut rien fournir.
+    if (!card || !card.faceUp) return state;
+
+    const target = state.tableau[targetColumn];
+    const targetCard = target[target.length - 1];
+
+    if (!canPlaceOnTableau(card, targetCard)) {
+        return state;
+    }
+
+    const nextState: SolitaireState = {
+        ...state,
+        foundations: {
+            ...state.foundations,
+            [suit]: foundation.slice(0, -1),
+        },
+        tableau: state.tableau.map((column, index) =>
+            index === targetColumn ? [...column, card] : column,
+        ),
     };
 
     return finalizeMove(nextState);
